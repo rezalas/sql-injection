@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Error-Based Injection Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
+        .demo-container { background-color: white; padding: 30px; border-radius: 5px; max-width: 600px; }
+        input, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; cursor: pointer; border: none; }
+        button:hover { background-color: #0056b3; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 5px; display: none; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .hint { background-color: #e7f3ff; border: 1px solid #2196F3; padding: 10px; margin: 15px 0; }
+        pre { background-color: #f4f4f4; padding: 10px; overflow-x: auto; }
+        a { color: #007bff; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1>Error-Based Injection</h1>
+        <p><a href="/">Back to Home</a></p>
+        
+        <p>Extract data by triggering SQL errors that reveal information.</p>
+        
+        <div class="hint">
+            <strong>Hint:</strong> The query might look like: <code>SELECT * FROM users WHERE id = INPUT</code>
+            <br><br>SQLite error-based injection examples:
+            <br>Try: <code>1 AND (SELECT 1/(CASE WHEN (SELECT COUNT(username) FROM users where username ='admin') > 0 THEN 0 ELSE 1 END)) --</code> 
+        </div>
+        
+        <form onsubmit="handleProfile(event)">
+            <label>User ID:</label>
+            <input type="text" id="userid" placeholder="Enter user ID" required>
+            <button type="submit">Get Profile</button>
+        </form>
+        
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        function handleProfile(event) {
+            event.preventDefault();
+            const userid = document.getElementById('userid').value;
+            
+            fetch('/api/profile?id=' + encodeURIComponent(userid))
+            .then(r => r.json())
+            .then(data => {
+                const result = document.getElementById('result');
+                result.style.display = 'block';
+                if (data.error) {
+                    result.className = 'result error';
+                    result.innerHTML = '<strong>Database Error:</strong><pre>' + escapeHtml(data.error) + '</pre>';
+                } else {
+                    result.className = 'result';
+                    result.innerHTML = '<strong>User Data:</strong><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                }
+            });
+        }
+        
+        function escapeHtml(text) {
+            const map = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'};
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+</body>
+</html>

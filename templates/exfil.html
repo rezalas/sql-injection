@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Data Exfiltration Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
+        .demo-container { background-color: white; padding: 30px; border-radius: 5px; max-width: 600px; }
+        input, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; cursor: pointer; border: none; }
+        button:hover { background-color: #0056b3; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 5px; display: none; }
+        .data { background-color: #d4edda; border: 1px solid #28a745; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .hint { background-color: #e7f3ff; border: 1px solid #2196F3; padding: 10px; margin: 15px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        a { color: #007bff; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1>Data Exfiltration</h1>
+        <p><a href="/">Back to Home</a></p>
+        
+        <p>Extract sensitive data through blind or visible techniques.</p>
+        
+        <div class="hint">
+            <strong>Hint:</strong> The query might look like: <code>SELECT product_id, name, price FROM products WHERE product_id = INPUT</code>
+            <br><br>Try: <code>1 OR 1=1 --</code>
+            <br>Or ... lets extract passwords as character codes
+            <br><code>1 UNION ALL SELECT id, username, CAST(unicode(substr(password, 1, 1)) AS REAL) FROM users --</code>
+        </div>
+        
+        <form onsubmit="handleProduct(event)">
+            <label>Product ID:</label>
+            <input type="text" id="productid" placeholder="Enter product ID" required>
+            <button type="submit">View Product</button>
+        </form>
+        
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        function handleProduct(event) {
+            event.preventDefault();
+            const productid = document.getElementById('productid').value;
+            
+            fetch('/api/product?id=' + encodeURIComponent(productid))
+            .then(r => r.json())
+            .then(data => {
+                const result = document.getElementById('result');
+                result.style.display = 'block';
+                if (data.error) {
+                    result.className = 'result error';
+                    result.innerHTML = '<strong>Error:</strong> ' + data.error;
+                } else {
+                    result.className = 'result data';
+                    let html = '<strong>Results:</strong><table><tr>';
+                    if (data.results && data.results.length > 0) {
+                        const keys = Object.keys(data.results[0]);
+                        keys.forEach(k => html += '<th>' + k + '</th>');
+                        html += '</tr>';
+                        data.results.forEach(row => {
+                            html += '<tr>';
+                            keys.forEach(k => html += '<td>' + (row[k] || '') + '</td>');
+                            html += '</tr>';
+                        });
+                    }
+                    html += '</table>';
+                    result.innerHTML = html;
+                }
+            });
+        }
+    </script>
+</body>
+</html>
